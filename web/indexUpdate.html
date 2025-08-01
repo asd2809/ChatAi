@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Message animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-animation {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Typing indicator animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .typing-dot {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.3s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.6s; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full h-[600px] bg-white rounded-xl shadow-xl overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-white flex items-center">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mr-3">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg">AI Assistant</h1>
+                <p class="text-xs opacity-80">Always here to help</p>
+            </div>
+            <div class="ml-auto flex space-x-2">
+                <button class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+                    <i class="fas fa-cog text-sm"></i>
+                </button>
+                <button class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat area -->
+        <div id="chat-box" class="flex-1 p-4 overflow-y-auto custom-scrollbar bg-gray-50">
+            <!-- Welcome message -->
+            <div class="flex mb-4 message-animation">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-robot text-indigo-600"></i>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm max-w-[80%]">
+                    <p class="text-gray-800">Hello! I'm your AI assistant. How can I help you today?</p>
+                    <p class="text-xs text-gray-500 mt-1">Just now</p>
+                </div>
+            </div>
+            
+            <!-- Typing indicator (hidden by default) -->
+            <div id="typing-indicator" class="flex mb-4 hidden">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-robot text-indigo-600"></i>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm max-w-[80%]">
+                    <div class="flex space-x-1">
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Input area -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <div class="flex items-center space-x-2">
+                <button class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition flex items-center justify-center text-gray-500">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <div class="flex-1 relative">
+                    <input type="text" id="message-input" 
+                           class="w-full p-3 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+                           placeholder="Type your message...">
+                    <button class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600">
+                        <i class="far fa-smile"></i>
+                    </button>
+                </div>
+                <button onclick="sendMessage()" 
+                        class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 transition flex items-center justify-center text-white">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2 text-center">AI Assistant may produce inaccurate information</p>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const ws = new WebSocket('ws://localhost:8083/ws');
+
+        // Format timestamp
+        function formatTime(date = new Date()) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            typingIndicator.classList.remove('hidden');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            typingIndicator.classList.add('hidden');
+        }
+
+        // Add message to chat
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex mb-4 message-animation ${isUser ? 'justify-end' : ''}`;
+            
+            if (!isUser) {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <i class="fas fa-robot text-indigo-600"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg shadow-sm max-w-[80%]">
+                        <p class="text-gray-800">${content}</p>
+                        <p class="text-xs text-gray-500 mt-1">${formatTime()}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="bg-indigo-600 text-white p-3 rounded-lg shadow-sm max-w-[80%]">
+                        <p>${content}</p>
+                        <p class="text-xs text-indigo-200 mt-1">${formatTime()}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center ml-3 flex-shrink-0">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
+                `;
+            }
+            
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Receive message
+        ws.onmessage = function(event) {
+            hideTyping();
+            addMessage(event.data);
+        };
+
+        // Send message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                addMessage(message, true);
+                ws.send(message);
+                messageInput.value = '';
+                showTyping();
+            }
+        }
+
+        // Send message on Enter key
+        messageInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Fetch previous messages
+        function fetchMessages() {
+            fetch('http://localhost:8083/get-messages')
+                .then(response => response.json())
+                .then(data => {
+                    chatBox.innerHTML = '';
+                    // Add welcome message
+                    addMessage("Hello! I'm your AI assistant. How can I help you today?");
+                    
+                    data.messages.forEach(msg => {
+                        addMessage(msg);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fallback welcome message if fetch fails
+                    chatBox.innerHTML = '';
+                    addMessage("Hello! I'm your AI assistant. How can I help you today?");
+                });
+        }
+
+        window.onload = fetchMessages;
+    </script>
+</body>
+</html>
