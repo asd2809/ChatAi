@@ -3,9 +3,9 @@
     <div class="messages" ref="messagesContainer">
       <div
         v-for="(message, index) in messages"
-        :key="index"
+        :key="message.id || index"
         class="message"
-        :class="{ 'self': message.self, 'other': !message.self }"
+        :class="{ self: message.self, other: !message.self }"
       >
         <div :class="['message-bubble', { 'self-bubble': message.self }]">
           <div class="message-text">{{ message.text }}</div>
@@ -27,11 +27,12 @@
 
 <script>
 export default {
+  props: ['sessionId'], // 可以用来标识当前会话，但这里没用到
   data() {
     return {
       messages: [],
       inputMessage: '',
-      socket: null
+      socket: null,
     };
   },
   methods: {
@@ -43,64 +44,78 @@ export default {
       const message = {
         text: this.inputMessage,
         self: true,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        id: Date.now() + Math.random(),
       };
       this.messages.push(message);
       this.scrollToBottom();
 
-      // 仅发送 text 字段给后端
-      this.socket.send(JSON.stringify({ text: this.inputMessage }));
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ text: this.inputMessage }));
+      } else {
+        console.warn('WebSocket 未连接或未打开，发送失败');
+      }
       this.inputMessage = '';
     },
     scrollToBottom() {
       this.$nextTick(() => {
-        const messagesContainer = this.$refs.messagesContainer;
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const container = this.$refs.messagesContainer;
+        if (container) container.scrollTop = container.scrollHeight;
       });
     },
     connectWebSocket() {
+      if (this.socket) {
+        this.socket.close();
+        this.socket = null;
+      }
       this.socket = new WebSocket('ws://localhost:8080/ws');
 
       this.socket.onopen = () => {
-        console.log('WebSocket 连接已建立');
+        console.log('✅ WebSocket 连接已建立');
       };
 
       this.socket.onmessage = (event) => {
+        console.log('[收到后端消息]：', event.data);
         try {
-          const serverData = JSON.parse(event.data);
-          const message = {
-            text: serverData.text || '[返回为空]',
+          const data = JSON.parse(event.data);
+          const text = data.text ? data.text.trim() : '[无内容]';
+          const timestamp = data.timestamp
+            ? new Date(data.timestamp).toLocaleTimeString()
+            : new Date().toLocaleTimeString();
+          this.messages.push({
+            text,
             self: false,
-            timestamp: new Date().toLocaleTimeString()
-          };
-          this.messages.push(message);
+            timestamp,
+            id: Date.now() + Math.random(),
+          });
           this.scrollToBottom();
         } catch (error) {
-          console.error('接收到无效 JSON 消息:', event.data);
+          console.error('❌ 接收消息解析失败:', error, event.data);
         }
       };
 
-      this.socket.onclose = () => {
-        console.log('WebSocket 连接已关闭');
+      this.socket.onerror = (error) => {
+        console.error('❌ WebSocket 错误:', error);
       };
 
-      this.socket.onerror = (error) => {
-        console.log('WebSocket 错误:', error);
+      this.socket.onclose = (event) => {
+        console.warn('⚠️ WebSocket 连接关闭', event);
       };
     },
     disconnectWebSocket() {
       if (this.socket) {
         this.socket.close();
+        this.socket = null;
       }
     }
   },
   mounted() {
-    const welcomeMessage = {
+    this.messages.push({
       text: '我是小智，有什么可以帮助你的吗？',
       self: false,
-      timestamp: new Date().toLocaleTimeString()
-    };
-    this.messages.push(welcomeMessage);
+      timestamp: new Date().toLocaleTimeString(),
+      id: Date.now(),
+    });
     this.scrollToBottom();
     this.connectWebSocket();
   },
@@ -119,6 +134,8 @@ export default {
   padding: 10px;
   margin-left: 250px;
   max-width: calc(100vw - 250px);
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 .messages {
@@ -126,6 +143,10 @@ export default {
   overflow-y: auto;
   margin-bottom: 10px;
   width: 100%;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .message {
@@ -133,7 +154,6 @@ export default {
   align-items: flex-start;
   padding: 5px;
   margin: 5px 0;
-  justify-content: flex-end;
 }
 
 .message.self {
@@ -149,6 +169,7 @@ export default {
   padding: 8px 12px;
   border-radius: 20px;
   background-color: #b3e5fc;
+  word-break: break-word;
 }
 
 .message.other .message-bubble {
@@ -162,27 +183,37 @@ export default {
 .message-timestamp {
   font-size: 12px;
   color: #999;
+  text-align: right;
 }
 
 .input-area {
   display: flex;
   align-items: center;
   width: 100%;
+  box-sizing: border-box;
 }
 
 input {
   flex-grow: 1;
-  padding: 5px;
+  padding: 8px;
   margin-right: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 button {
-  padding: 5px 10px;
+  padding: 8px 16px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  background-color: #1976d2;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #ddd;
+  background-color: #1565c0;
 }
 </style>
