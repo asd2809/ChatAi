@@ -1,7 +1,12 @@
 <template>
   <div class="chat-box">
     <div class="messages" ref="messagesContainer">
-      <div v-for="(message, index) in messages" :key="index" class="message" :class="{ 'self': message.self, 'other': !message.self }">
+      <div
+        v-for="(message, index) in messages"
+        :key="index"
+        class="message"
+        :class="{ 'self': message.self, 'other': !message.self }"
+      >
         <div :class="['message-bubble', { 'self-bubble': message.self }]">
           <div class="message-text">{{ message.text }}</div>
           <div class="message-timestamp">{{ message.timestamp }}</div>
@@ -9,7 +14,12 @@
       </div>
     </div>
     <div class="input-area">
-      <input type="text" v-model="inputMessage" @keyup.enter="sendMessage" placeholder="输入消息..." />
+      <input
+        type="text"
+        v-model="inputMessage"
+        @keyup.enter="sendMessage"
+        placeholder="输入消息..."
+      />
       <button @click="sendMessage">发送</button>
     </div>
   </div>
@@ -32,14 +42,15 @@ export default {
       }
       const message = {
         text: this.inputMessage,
-        self: true, // 发送消息为 self
+        self: true,
         timestamp: new Date().toLocaleTimeString()
       };
       this.messages.push(message);
-      this.inputMessage = '';
       this.scrollToBottom();
-      this.socket.send(JSON.stringify(message));
-      console.log('发送消息:', message);
+
+      // 仅发送 text 字段给后端
+      this.socket.send(JSON.stringify({ text: this.inputMessage }));
+      this.inputMessage = '';
     },
     scrollToBottom() {
       this.$nextTick(() => {
@@ -49,21 +60,32 @@ export default {
     },
     connectWebSocket() {
       this.socket = new WebSocket('ws://localhost:8080/ws');
+
       this.socket.onopen = () => {
         console.log('WebSocket 连接已建立');
       };
+
       this.socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        // 确保接收到的消息是 `self: false`
-        message.self = false; // 设置接收到的消息为非自己发送
-        this.messages.push(message);
-        this.scrollToBottom();
+        try {
+          const serverData = JSON.parse(event.data);
+          const message = {
+            text: serverData.text || '[返回为空]',
+            self: false,
+            timestamp: new Date().toLocaleTimeString()
+          };
+          this.messages.push(message);
+          this.scrollToBottom();
+        } catch (error) {
+          console.error('接收到无效 JSON 消息:', event.data);
+        }
       };
+
       this.socket.onclose = () => {
         console.log('WebSocket 连接已关闭');
       };
+
       this.socket.onerror = (error) => {
-        console.log('WebSocket 连接发生错误:', error);
+        console.log('WebSocket 错误:', error);
       };
     },
     disconnectWebSocket() {
@@ -73,15 +95,13 @@ export default {
     }
   },
   mounted() {
-    // 在页面加载时显示系统的欢迎消息
     const welcomeMessage = {
       text: '我是小智，有什么可以帮助你的吗？',
-      self: false,  // 系统消息，显示在左边
+      self: false,
       timestamp: new Date().toLocaleTimeString()
     };
     this.messages.push(welcomeMessage);
     this.scrollToBottom();
-
     this.connectWebSocket();
   },
   beforeUnmount() {
@@ -97,15 +117,15 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 10px;
-  margin-left: 250px; /* Adjust this value to match the sidebar width */
-  max-width: calc(100vw - 250px); /* Ensure chat box does not exceed sidebar width */
+  margin-left: 250px;
+  max-width: calc(100vw - 250px);
 }
 
 .messages {
   flex-grow: 1;
   overflow-y: auto;
   margin-bottom: 10px;
-  width: 100%; /* Ensure messages take full width */
+  width: 100%;
 }
 
 .message {
@@ -113,26 +133,26 @@ export default {
   align-items: flex-start;
   padding: 5px;
   margin: 5px 0;
-  justify-content: flex-end; /* 默认右对齐 */
+  justify-content: flex-end;
 }
 
 .message.self {
-  justify-content: flex-end; /* 自己发送的消息右对齐 */
+  justify-content: flex-end;
 }
 
 .message.other {
-  justify-content: flex-start; /* 其他消息左对齐 */
+  justify-content: flex-start;
 }
 
 .message-bubble {
   max-width: 60%;
   padding: 8px 12px;
   border-radius: 20px;
-  background-color: #b3e5fc; /* Light blue for self messages */
+  background-color: #b3e5fc;
 }
 
 .message.other .message-bubble {
-  background-color: #e0e0e0; /* Light grey for other messages */
+  background-color: #e0e0e0;
 }
 
 .message-text {
@@ -147,6 +167,7 @@ export default {
 .input-area {
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 input {
