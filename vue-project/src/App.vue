@@ -1,27 +1,31 @@
 <template>
-  <div id="app">
-    <WebSocketChat />
+  <div id="app" class="layout">
+    <Sidebar />
+    <ChatBox />
   </div>
 </template>
 
 <script>
-import WebSocketChat from './components/WebSocketChat.vue';
+import Sidebar from './components/Sidebar.vue';
+import ChatBox from './components/ChatBox.vue';
 
 export default {
   components: {
-    WebSocketChat
+    Sidebar,
+    ChatBox
   }
 };
 </script>
 
 <style>
-/* 添加一些全局样式 */
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
   margin-top: 60px;
 }
 </style>
