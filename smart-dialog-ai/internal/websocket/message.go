@@ -40,6 +40,7 @@ func (s *MessageHandle) HandleMessage() {
 
 	for {
 		messageType, msg, err := s.WebSocketServer.conn.ReadMessage()
+		
 		if err != nil {
 			s.Logrus.Error("消息读取失败:", err)
 			break

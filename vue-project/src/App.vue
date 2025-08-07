@@ -1,19 +1,22 @@
 <template>
   <div id="app">
+    <!-- 顶部导航栏 -->
+    <NavBar />
+    <!-- 页面主体，左边侧边栏 + 右边聊天框 -->
     <div class="layout">
       <Sidebar @new-session="handleNewSession" @select-session="handleSelectSession" />
-      <!-- 这里仅传currentSessionId，或干脆不传 -->
       <ChatBox :sessionId="currentSession ? currentSession.id : null" />
     </div>
   </div>
 </template>
 
+
 <script>
 import Sidebar from './components/Sidebar.vue';
 import ChatBox from './components/ChatBox.vue';
-
+import NavBar from './components/NavBar.vue';
 export default {
-  components: { Sidebar, ChatBox },
+  components: { Sidebar, ChatBox,NavBar  },
   data() {
     return {
       sessions: [],
@@ -48,6 +51,6 @@ export default {
 .layout {
   display: flex;
   height: calc(100vh - 60px);
-  margin-top: 60px;
+  margin-top:40px;
 }
 </style>

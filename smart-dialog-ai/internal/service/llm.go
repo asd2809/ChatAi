@@ -274,6 +274,8 @@ func (s *SiliconFlowHandler) checkIfToolNeeded(functions Function) (string, erro
 	}
 
 }
+
+
 func (s *SiliconFlowHandler) tellJoke() (string, error) {
 	// 基本参数配置
 	apiUrl := "http://v.juhe.cn/joke/content/list"

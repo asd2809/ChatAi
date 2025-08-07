@@ -22,7 +22,9 @@ export default {
   align-items: center;
   padding: 0 20px;
   z-index: 100;
+  box-sizing: border-box;
 }
+
 
 .navbar-title {
   font-size: 20px;

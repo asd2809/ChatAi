@@ -27,7 +27,6 @@ var upgrader = websocket.Upgrader{
 func NewWebSocketServer() *WebSocketServer {
 	return &WebSocketServer{
 		upgrader: &upgrader,
-
 		clients:   make(map[*websocket.Conn]bool),
 		broadcast: make(chan []byte),
 	}
