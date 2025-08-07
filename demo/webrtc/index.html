@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>WebRTC with Go</title>
+</head>
+<body>
+  <h2>WebRTC + Go (pion)</h2>
+  <button id="start">Start Audio</button>
+  <!-- 播放远端音频 -->
+  <audio id="remoteAudio" autoplay></audio>
+
+  <script>
+  const pc = new RTCPeerConnection();
+  const ws = new WebSocket("ws://localhost:8080/ws");
+
+  ws.onopen = () => {
+    console.log("✅ WebSocket connected");
+  };
+
+  ws.onmessage = async (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "answer") {
+      console.log("📥 Received SDP Answer");
+      await pc.setRemoteDescription(new RTCSessionDescription(msg));
+    } else if (msg.candidate) {
+      console.log("📥 Received ICE Candidate from server");
+      await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log("📡 ICE connection state:", pc.iceConnectionState);
+  };
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      console.log("📤 Sending ICE Candidate to server");
+      ws.send(JSON.stringify({ candidate: e.candidate }));
+    } else {
+      console.log("✅ ICE Gathering complete");
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    console.log("🎉 PeerConnection state:", pc.connectionState);
+  };
+
+  // 新增：监听远端轨道事件，绑定到 audio 标签播放
+  pc.ontrack = (event) => {
+    console.log("🔊 Received remote track:", event.track.kind);
+    const remoteAudio = document.getElementById("remoteAudio");
+    // event.streams[0] 是远端媒体流
+    if (remoteAudio.srcObject !== event.streams[0]) {
+      remoteAudio.srcObject = event.streams[0];
+      console.log("▶️ Playing remote audio stream");
+    }
+  };
+
+  document.getElementById("start").onclick = async () => {
+    console.log("🎤 Getting user audio...");
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => {
+      console.log("🎧 Adding track to PeerConnection:", track.kind);
+      pc.addTrack(track, stream);
+    });
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    console.log("📤 Sending SDP Offer to server");
+    ws.send(JSON.stringify(offer));
+  };
+  </script>
+</body>
+</html>

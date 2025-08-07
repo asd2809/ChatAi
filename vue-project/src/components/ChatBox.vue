@@ -130,19 +130,15 @@ export default {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 10px;
-  margin-left: 250px;
-  max-width: calc(100vw - 250px);
-  height: 100vh;
+  height: 100%;
   box-sizing: border-box;
+  padding: 10px;
+  overflow: hidden;
 }
 
 .messages {
   flex-grow: 1;
   overflow-y: auto;
-  margin-bottom: 10px;
-  width: 100%;
   background: #f9f9f9;
   border-radius: 8px;
   padding: 10px;
