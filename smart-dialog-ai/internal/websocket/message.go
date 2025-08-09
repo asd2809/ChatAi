@@ -27,9 +27,9 @@ func NewMessageHandle(server *WebSocketServer, llm *service.SiliconFlowHandler) 
 		llm:             llm, // 初始化硅谷流处理器
 	}
 }
-func NewMessageHandleServer(server *WebSocketServer) *MessageHandle {
+func NewMessageHandleServer(webSocketServer *WebSocketServer) *MessageHandle {
 	return &MessageHandle{
-		WebSocketServer: server,
+		WebSocketServer: webSocketServer,
 		Logrus:          *logrus.New(),
 	}
 }
@@ -82,5 +82,4 @@ func (s *MessageHandle) HandleMessage() {
 		}
 	}
 }
-
 

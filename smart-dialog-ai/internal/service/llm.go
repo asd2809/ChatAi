@@ -11,17 +11,18 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"smart-dialog-ai/internal/model"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 type SiliconFlowHandler struct {
-	ctx    context.Context
-	logger *logrus.Logger
-	apiURL string
-	apiKey string
-	client *http.Client
+	ctx     context.Context
+	logger  *logrus.Logger
+	apiURL  string
+	apiKey  string
+	Client  *http.Client
 }
 
 // 创建新的 SiliconFlowHandler
@@ -31,7 +32,7 @@ func NewSiliconFlowHandler(apiURL, apiKey string) *SiliconFlowHandler {
 		logger: logrus.New(),
 		apiURL: apiURL,
 		apiKey: apiKey,
-		client: &http.Client{Timeout: 30 * time.Second},
+		Client: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -52,9 +53,9 @@ type Tool struct {
 }
 
 type RequestBody struct {
-	Model    string        `json:"model"`
-	Messages []ChatMessage `json:"messages"`
-	Tools    []Tool        `json:"tools"`
+	Model    string          `json:"model"`
+	Messages []model.Message `json:"messages"`
+	Tools    []model.Tool          `json:"tools"`
 }
 
 type ToolCall struct {
@@ -100,10 +101,10 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	// 打印前端发来的消息
 	log.Printf("web send message is :%s", msg)
 	// 构造工具调用信息
-	tools := []Tool{
+	tools := []model.Tool{
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: model.ToolFunction{
 				Name:        "DateMaster", // 工具名称
 				Description: "一款多功能日期查询工具，它能提供用户指定日期的详细信息比如，星座，农历日期，生肖，岁次，黄历等",
 				Parameters: map[string]interface{}{
@@ -120,7 +121,7 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 		},
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: model.ToolFunction{
 				Name:        "jork",
 				Description: "用来讲笑话的",
 				Parameters: map[string]interface{}{
@@ -134,16 +135,20 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 			},
 		},
 	}
+	// aiRole := model.Message{
+	// 	Role:    "system",
+	// 	Content: "你是一位百科全书",
+	// }
 	// 构造请求体
 	requestBodyStruct := RequestBody{
-		Model: "Qwen/QwQ-32B", // 使用的模型
-		Messages: []ChatMessage{
+		Model:    "Qwen/QwQ-32B", // 使用的模型
+		Messages: []model.Message{
 			{
-				Role:    "user",
-				Content: msg, // 用户输入的问题
+				Role: "user",
+				Content: msg,
 			},
 			{
-				Role:    "system",
+				Role:"user",
 				Content: "你是一位百科全书",
 			},
 		},
@@ -274,7 +279,6 @@ func (s *SiliconFlowHandler) checkIfToolNeeded(functions Function) (string, erro
 	}
 
 }
-
 
 func (s *SiliconFlowHandler) tellJoke() (string, error) {
 	// 基本参数配置

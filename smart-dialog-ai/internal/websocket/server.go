@@ -42,6 +42,7 @@ func (s *WebSocketServer) HandleConnection(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
+	// 把web与go之间客户端存放如websocketServer
 	s.conn =conn
 	s.clients[conn] = true
 	// 读取web发来的消息
