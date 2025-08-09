@@ -12,9 +12,11 @@ import (
 	"net/http"
 	"net/url"
 	"smart-dialog-ai/internal/model"
+	"smart-dialog-ai/internal/repository"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type SiliconFlowHandler struct {
@@ -23,40 +25,26 @@ type SiliconFlowHandler struct {
 	apiURL  string
 	apiKey  string
 	Client  *http.Client
+	History []model.Message
 }
 
 // 创建新的 SiliconFlowHandler
-func NewSiliconFlowHandler(apiURL, apiKey string) *SiliconFlowHandler {
+func NewSiliconFlowHandler(apiURL, apiKey string,db *gorm.DB) *SiliconFlowHandler {
+	history := repository.LoadHistory(db, "user1")
+	if history == nil {
+		history = make([]model.Message, 0)
+	}
 	return &SiliconFlowHandler{
 		ctx:    context.Background(),
 		logger: logrus.New(),
 		apiURL: apiURL,
 		apiKey: apiKey,
 		Client: &http.Client{Timeout: 30 * time.Second},
+		// 先从数据库中获取历史记录
+		History: history,
 	}
 }
 
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type ToolFunction struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
-type Tool struct {
-	Type     string       `json:"type"`
-	Function ToolFunction `json:"function"`
-}
-
-type RequestBody struct {
-	Model    string          `json:"model"`
-	Messages []model.Message `json:"messages"`
-	Tools    []model.Tool          `json:"tools"`
-}
 
 
 // 发送请求给大模型
@@ -98,23 +86,27 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 			},
 		},
 	}
-	// aiRole := model.Message{
-	// 	Role:    "system",
-	// 	Content: "你是一位百科全书",
-	// }
-	// 构造请求体
-	requestBodyStruct := RequestBody{
-		Model:    "Qwen/QwQ-32B", // 使用的模型
-		Messages: []model.Message{
+	// 先存放llm需要的信息
+	messages :=[]model.Message{
 			{
 				Role: "user",
 				Content: msg,
 			},
 			{
-				Role:"user",
+				Role:"system",
 				Content: "你是一位百科全书",
 			},
-		},
+		}
+	// 存放聊天记录的
+	if s.History == nil{
+		s.logger.Error("聊天记录为nil")
+	}
+	
+	s.History = append(s.History,messages... )
+	// 构造请求体
+	requestBodyStruct := model.RequestBody{
+		Model:    "Qwen/QwQ-32B", // 使用的模型
+		Messages:s.History ,
 		Tools: tools, // 传入工具调用
 	}
 
@@ -212,6 +204,8 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	}
 	return "", fmt.Errorf("no response from the model")
 }
+
+
 
 func (s *SiliconFlowHandler) checkIfToolNeeded(functions model.Function) (string, error) {
 	// get tool name

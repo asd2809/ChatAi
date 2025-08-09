@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"smart-dialog-ai/internal/model"
 
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-// 获取历史的聊天记录
+// 保存聊天记录
 func SaveMessage(db *gorm.DB,userID string ,msg model.Message){
+	logrus.Info("开始保存聊天记录")
 	record := model.ChatRecord{
 		UserID: userID,
 		Role: msg.Role,
@@ -19,8 +21,10 @@ func SaveMessage(db *gorm.DB,userID string ,msg model.Message){
 		fmt.Println("保存失败：",err)
 	}
 }
-// 保存聊天记录
+// 获取聊天记录
 func LoadHistory(db *gorm.DB , userID string)[] model.Message{
+	logrus.Info("开始获取聊天记录")
+
 	var records []model.ChatRecord
 	var history []model.Message
 
