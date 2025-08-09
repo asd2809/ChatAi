@@ -14,7 +14,7 @@ type ChatMessage struct {
 // 	Role    string `json:"role"`
 // 	Content string `json:"content"`
 // }
-
+// ------以下是llm需要的结构体---------
 type ToolFunction struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
@@ -69,9 +69,10 @@ type Function struct {
 	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
 }
+// ---------------
 
 
-
+// ------------以下是聊天记录需的-------
 // 聊天记录的内容
 type Message struct {
 	Role    string `json:"role"`
@@ -96,3 +97,4 @@ type ChatRecord struct {
 	Content   string
 	CreatedAt time.Time
 }
+// ----------------------

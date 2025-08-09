@@ -58,43 +58,6 @@ type RequestBody struct {
 	Tools    []model.Tool          `json:"tools"`
 }
 
-type ToolCall struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"` // Arguments is a string containing JSON
-	} `json:"function"`
-}
-
-// 响应体的结构体
-type ChatCompletionResponse struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	Model   string `json:"model"`
-	Usage   struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	} `json:"usage"`
-	Choices []struct {
-		Index        int    `json:"index"`
-		FinishReason string `json:"finish_reason"`
-		Message      struct {
-			Role             string     `json:"role"`
-			Content          string     `json:"content"`
-			ReasoningContent string     `json:"reasoning_content,omitempty"`
-			ToolCalls        []ToolCall `json:"tool_calls"`
-		} `json:"message"`
-	} `json:"choices"`
-}
-
-// 获取工具的姓名与参数的结构体
-type Function struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
-}
 
 // 发送请求给大模型
 func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
@@ -208,7 +171,7 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	}
 
 	// 解析响应
-	var response ChatCompletionResponse
+	var response model.ChatCompletionResponse
 	err = json.Unmarshal(body, &response)
 
 	if err != nil {
@@ -250,7 +213,7 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	return "", fmt.Errorf("no response from the model")
 }
 
-func (s *SiliconFlowHandler) checkIfToolNeeded(functions Function) (string, error) {
+func (s *SiliconFlowHandler) checkIfToolNeeded(functions model.Function) (string, error) {
 	// get tool name
 	name := functions.Name
 	// get tool params

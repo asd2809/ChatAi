@@ -7,9 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
-
 // 获取历史的聊天记录
 func SaveMessage(db *gorm.DB,userID string ,msg model.Message){
 	record := model.ChatRecord{
