@@ -1,6 +1,7 @@
 package api
 
 import (
+	
 	"log"
 	"smart-dialog-ai/internal/websocket"
 
@@ -26,10 +27,7 @@ func (g *GinWrapper) SetupWebSocketAndRoutes(websocketServer *websocket.WebSocke
 	g.Gin.GET("/chatAll", g.HandleLoadHistory)
 	g.Gin.GET("/chatHistory",g.HandleClearHistory)
 
-	log.Println("服务器启动于: http://localhost:8080")
-	if err := g.Gin.Run(":8080"); err != nil {
-		log.Fatalln("启动失败:", err)
-	}
+	
 
 	// 用户认证路由组
 	// authGroup := g.Gin.Group("/api/v1/auth")
@@ -56,4 +54,10 @@ func (g *GinWrapper) SetupWebSocketAndRoutes(websocketServer *websocket.WebSocke
 		// userGroup.GET("/",g.HandleListUsers) //通常只对管理员开放
 	
 	}
-}
+	
+	log.Println("服务器启动于: http://localhost:8080")
+	if err := g.Gin.Run(":8080"); err != nil {
+		log.Fatalln("启动失败:", err)
+	}
+
+}	
