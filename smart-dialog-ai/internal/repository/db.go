@@ -1,12 +1,15 @@
-package api
-
+package repository
+// 主要是用于初始化数据库
 import (
 	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
-
+type DB struct{
+	DB *gorm.DB
+	UserID string
+}
 
 type Message struct {
 	Role    string `json:"role"`
@@ -31,6 +34,14 @@ type ChatRecord struct {
 	Role      string    `gorm:"type:enum('user','assistant')"`
 	Content   string
 	CreatedAt time.Time
+}
+
+// 获取实例
+func NewDB(db *gorm.DB,userID string) *DB{
+	return &DB{
+		DB: db,
+		UserID: userID,
+	}
 }
 
 // 初始化

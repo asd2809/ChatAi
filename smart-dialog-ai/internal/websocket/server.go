@@ -13,6 +13,7 @@ type WebSocketServer struct {
 	conn      *websocket.Conn    //用于web与go之间联系websocket的客户端
 	clients   map[*websocket.Conn]bool // 连接的客户端
 	broadcast chan []byte              // 广播消息的通道
+	messageHandle *MessageHandle
 }
 
 var upgrader = websocket.Upgrader{
@@ -42,12 +43,17 @@ func (s *WebSocketServer) HandleConnection(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
+	// 把web与go之间客户端存放如websocketServer
 	s.conn =conn
 	s.clients[conn] = true
 	// 读取web发来的消息
 	// 实例化 MessageHandle，并调用 HandleMessage
-	messageHandler := NewMessageHandleServer(s) // 传入 WebSocketServer 实例
-	messageHandler.HandleMessage()        // 调用方法
+	// 获取message实例
+	s.messageHandle.HandleMessage()
 	
 
+}
+// 存放messageHandle
+func(s *WebSocketServer) GetMessageHandle(messageHandler *MessageHandle){
+	s.messageHandle = messageHandler
 }

@@ -5,6 +5,7 @@ package websocket
 import (
 	"encoding/json"
 	"smart-dialog-ai/internal/model"
+	"smart-dialog-ai/internal/repository"
 	"time"
 
 	"smart-dialog-ai/internal/service"
@@ -14,23 +15,19 @@ import (
 
 // MessageHandle 结构体用于处理WebSocket消息
 type MessageHandle struct {
-	WebSocketServer *WebSocketServer            //go与web之间的连接
+	WebSocketServer *WebSocketServer            // go与web之间的连接
 	Logrus          logrus.Logger               // 日志记录器
 	llm             *service.SiliconFlowHandler // 硅谷流处理器(大模型)
+	db              *repository.DB                     // 数据库
 }
 
 // 初始化结构体
-func NewMessageHandle(server *WebSocketServer, llm *service.SiliconFlowHandler) *MessageHandle {
+func NewMessageHandle(server *WebSocketServer, llm *service.SiliconFlowHandler, db *repository.DB) *MessageHandle {
 	return &MessageHandle{
 		WebSocketServer: server,
 		Logrus:          *logrus.New(),
 		llm:             llm, // 初始化硅谷流处理器
-	}
-}
-func NewMessageHandleServer(server *WebSocketServer) *MessageHandle {
-	return &MessageHandle{
-		WebSocketServer: server,
-		Logrus:          *logrus.New(),
+		db:              db,  //数据库的结构体
 	}
 }
 
@@ -40,6 +37,14 @@ func (s *MessageHandle) HandleMessage() {
 
 	for {
 		messageType, msg, err := s.WebSocketServer.conn.ReadMessage()
+		
+		// 保存聊天记录
+		userContent := model.Message{
+			Role:    "user",
+			Content: string(msg),
+		}
+		s.llm.History = append(s.llm.History,userContent)
+		repository.SaveMessage(s.db.DB,s.db.UserID,userContent)
 		
 		if err != nil {
 			s.Logrus.Error("消息读取失败:", err)
@@ -56,6 +61,17 @@ func (s *MessageHandle) HandleMessage() {
 
 		// 2. 传给 LLM 生成回复
 		replyText, err := s.llm.GenerateText(userMsg.Text)
+		s.Logrus.Printf("打印出llm回复内容%s",replyText)
+		
+		// 保存聊天记录
+		aiContent := model.Message{
+			Role: "assistant",
+			Content: replyText,
+		}
+		s.llm.History = append(s.llm.History, aiContent)
+		repository.SaveMessage(s.db.DB,s.db.UserID,aiContent)
+
+
 		if err != nil {
 			s.Logrus.Error("调用LLM失败:", err)
 			break
@@ -82,5 +98,3 @@ func (s *MessageHandle) HandleMessage() {
 		}
 	}
 }
-
-

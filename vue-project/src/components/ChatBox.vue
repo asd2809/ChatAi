@@ -1,6 +1,6 @@
 <template>
   <div class="chat-box">
-    <div class="messages" ref="messagesContainer">
+    <div class="messages" ref="Container">
       <div
         v-for="(message, index) in messages"
         :key="message.id || index"
@@ -27,7 +27,7 @@
 
 <script>
 export default {
-  props: ['sessionId'], // 可以用来标识当前会话，但这里没用到
+  props: ['sessionId'],
   data() {
     return {
       messages: [],
@@ -59,7 +59,7 @@ export default {
     },
     scrollToBottom() {
       this.$nextTick(() => {
-        const container = this.$refs.messagesContainer;
+        const container = this.$refs.Container;
         if (container) container.scrollTop = container.scrollHeight;
       });
     },
@@ -107,7 +107,30 @@ export default {
         this.socket.close();
         this.socket = null;
       }
-    }
+    },
+    async loadHistory() {
+      try {
+        const response = await fetch('/chatAll?user_id=user1');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        this.messages = data.messages.map(message => ({
+          text: message.content,
+          self: message.role === 'user',
+          timestamp: new Date(message.created_at).toLocaleTimeString(),
+          id: message.id,
+         }));
+        this.scrollToBottom();
+      } catch (error) {
+        console.error('加载聊天记录失败:', error);
+        if (error instanceof SyntaxError) {
+          alert('后端返回的数据不是有效的 JSON 格式。');
+        } else {
+          alert('加载聊天记录失败，请检查网络请求或后端服务。');
+        }
+      }
+    },
   },
   mounted() {
     this.messages.push({
@@ -118,12 +141,102 @@ export default {
     });
     this.scrollToBottom();
     this.connectWebSocket();
+    this.loadHistory();
   },
   beforeUnmount() {
     this.disconnectWebSocket();
-  }
+  },
 };
 </script>
+
+<style scoped>
+.chat-box {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px;
+  margin: 5px 0;
+}
+
+.message.self {
+  justify-content: flex-end;
+}
+
+.message.other {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 60%;
+  padding: 8px 12px;
+  border-radius: 20px;
+  background-color: #b3e5fc;
+  word-break: break-word;
+}
+
+.message.other .message-bubble {
+  background-color: #e0e0e0;
+}
+
+.message-text {
+  margin-bottom: 2px;
+}
+
+.message-timestamp {
+  font-size: 12px;
+  color: #999;
+  text-align: right;
+}
+
+.input-area {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input {
+  flex-grow: 1;
+  padding: 8px;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+button {
+  padding: 8px 16px;
+  cursor: pointer;
+  background-color: #1976d2;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #1565c0;
+}
+</style>
 
 <style scoped>
 .chat-box {

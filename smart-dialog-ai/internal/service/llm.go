@@ -11,99 +11,51 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"smart-dialog-ai/internal/model"
+	"smart-dialog-ai/internal/repository"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type SiliconFlowHandler struct {
-	ctx    context.Context
-	logger *logrus.Logger
-	apiURL string
-	apiKey string
-	client *http.Client
+	ctx     context.Context
+	logger  *logrus.Logger
+	apiURL  string
+	apiKey  string
+	Client  *http.Client
+	History []model.Message
 }
 
 // 创建新的 SiliconFlowHandler
-func NewSiliconFlowHandler(apiURL, apiKey string) *SiliconFlowHandler {
+func NewSiliconFlowHandler(apiURL, apiKey string,db *gorm.DB) *SiliconFlowHandler {
+	history := repository.LoadHistory(db, "user1")
+	if history == nil {
+		history = make([]model.Message, 0)
+	}
 	return &SiliconFlowHandler{
 		ctx:    context.Background(),
 		logger: logrus.New(),
 		apiURL: apiURL,
 		apiKey: apiKey,
-		client: &http.Client{Timeout: 30 * time.Second},
+		Client: &http.Client{Timeout: 30 * time.Second},
+		// 先从数据库中获取历史记录
+		History: history,
 	}
 }
 
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
 
-type ToolFunction struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
-type Tool struct {
-	Type     string       `json:"type"`
-	Function ToolFunction `json:"function"`
-}
-
-type RequestBody struct {
-	Model    string        `json:"model"`
-	Messages []ChatMessage `json:"messages"`
-	Tools    []Tool        `json:"tools"`
-}
-
-type ToolCall struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"` // Arguments is a string containing JSON
-	} `json:"function"`
-}
-
-// 响应体的结构体
-type ChatCompletionResponse struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	Model   string `json:"model"`
-	Usage   struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	} `json:"usage"`
-	Choices []struct {
-		Index        int    `json:"index"`
-		FinishReason string `json:"finish_reason"`
-		Message      struct {
-			Role             string     `json:"role"`
-			Content          string     `json:"content"`
-			ReasoningContent string     `json:"reasoning_content,omitempty"`
-			ToolCalls        []ToolCall `json:"tool_calls"`
-		} `json:"message"`
-	} `json:"choices"`
-}
-
-// 获取工具的姓名与参数的结构体
-type Function struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
-}
 
 // 发送请求给大模型
 func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	// 打印前端发来的消息
 	log.Printf("web send message is :%s", msg)
 	// 构造工具调用信息
-	tools := []Tool{
+	tools := []model.Tool{
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: model.ToolFunction{
 				Name:        "DateMaster", // 工具名称
 				Description: "一款多功能日期查询工具，它能提供用户指定日期的详细信息比如，星座，农历日期，生肖，岁次，黄历等",
 				Parameters: map[string]interface{}{
@@ -120,7 +72,7 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 		},
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: model.ToolFunction{
 				Name:        "jork",
 				Description: "用来讲笑话的",
 				Parameters: map[string]interface{}{
@@ -134,19 +86,27 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 			},
 		},
 	}
-	// 构造请求体
-	requestBodyStruct := RequestBody{
-		Model: "Qwen/QwQ-32B", // 使用的模型
-		Messages: []ChatMessage{
+	// 先存放llm需要的信息
+	messages :=[]model.Message{
 			{
-				Role:    "user",
-				Content: msg, // 用户输入的问题
+				Role: "user",
+				Content: msg,
 			},
 			{
-				Role:    "system",
+				Role:"system",
 				Content: "你是一位百科全书",
 			},
-		},
+		}
+	// 存放聊天记录的
+	if s.History == nil{
+		s.logger.Error("聊天记录为nil")
+	}
+	
+	s.History = append(s.History,messages... )
+	// 构造请求体
+	requestBodyStruct := model.RequestBody{
+		Model:    "Qwen/QwQ-32B", // 使用的模型
+		Messages:s.History ,
 		Tools: tools, // 传入工具调用
 	}
 
@@ -203,7 +163,7 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	}
 
 	// 解析响应
-	var response ChatCompletionResponse
+	var response model.ChatCompletionResponse
 	err = json.Unmarshal(body, &response)
 
 	if err != nil {
@@ -245,7 +205,9 @@ func (s *SiliconFlowHandler) GenerateText(msg string) (string, error) {
 	return "", fmt.Errorf("no response from the model")
 }
 
-func (s *SiliconFlowHandler) checkIfToolNeeded(functions Function) (string, error) {
+
+
+func (s *SiliconFlowHandler) checkIfToolNeeded(functions model.Function) (string, error) {
 	// get tool name
 	name := functions.Name
 	// get tool params
@@ -274,7 +236,6 @@ func (s *SiliconFlowHandler) checkIfToolNeeded(functions Function) (string, erro
 	}
 
 }
-
 
 func (s *SiliconFlowHandler) tellJoke() (string, error) {
 	// 基本参数配置
