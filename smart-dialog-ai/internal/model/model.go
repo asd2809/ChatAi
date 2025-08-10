@@ -98,3 +98,4 @@ type ChatRecord struct {
 	CreatedAt time.Time
 }
 // ----------------------
+// 用户表

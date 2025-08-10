@@ -41,3 +41,23 @@ func LoadHistory(db *gorm.DB , userID string)[] model.Message{
 	return history
 }
 
+// GetUserChatHistory 获取指定用户的聊天记录，用于前端显示
+func GetUserChatHistory(db *gorm.DB, userID string) []model.ChatRecord {
+	var records []model.ChatRecord
+	db.Where("user_id = ?", userID).Order("created_at asc").Find(&records)
+	return records
+}
+func ClearUserChatHistory(db *gorm.DB, userID string) error {
+	// 执行删除操作，删除指定用户的所有聊天记录
+	result := db.Where("user_id = ?", userID).Delete(&model.ChatRecord{})
+	if result.Error != nil {
+		// 如果删除过程中出现错误，返回错误
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		// 如果没有记录被删除，可能表示没有找到对应的聊天记录，或者用户ID错误
+		return fmt.Errorf("no chat records found for user %s", userID)
+	}
+	return nil
+}
+

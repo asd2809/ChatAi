@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	"net/http"
+	"smart-dialog-ai/internal/api"
 	"smart-dialog-ai/internal/repository"
 	"smart-dialog-ai/internal/service"
 	"smart-dialog-ai/internal/websocket"
@@ -9,52 +10,46 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// func main() {
-// 	apiUrl := "https://api.siliconflow.cn/v1/chat/completions"        // 替换为你的 API 地址
-// 	apiKey := "sk-ogugyhoyqushnqplefczlsafysldjensioiucmqhwbbkcybs" // 替换为有效的 API Token
-// 	websocketServer := websocket.NewWebSocketServer()
-
-// 	llm := service.NewSiliconFlowHandler(apiUrl, apiKey)
-
-// 	historyManager := websocket.NewChatHistoryManager()
-
-// 	messageHandler := websocket.NewMessageHandle(websocketServer, llm, historyManager)
-
-// 	router := gin.Default()
-// 	router.GET("/ws", func(c *gin.Context) {
-// 		websocketServer.HandleConnection(c)
-// 		// 启动消息处理协程，注意 websocketServer.conn 需要被正确赋值
-// 		go messageHandler.HandleMessage()
-// 	})
-
-// 	log.Println("服务器启动于: http://localhost:8080")
-// 	router.Run(":8080")
-// }
+// CORSMiddleware 是一个中间件，用于处理 CORS 相关的响应头
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")                             // 允许所有域的请求
+		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")           // 允许 GET 和 POST 请求
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept") // 允许自定义请求头
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+		} else {
+			c.Next() // 继续处理请求
+		}
+	}
+}
 
 func main() {
+
 	// 加载配置
 
 	// 初始化 API 服务
 	db := repository.InitDB()
 	// 获取db的实例
-	dbNew := repository.NewDB(db,"user1")
+	dbNew := repository.NewDB(db, "user1")
 	// 初始化llm
 	url := "https://api.siliconflow.cn/v1/chat/completions"        // 替换为你的 API 地址
 	token := "sk-ogugyhoyqushnqplefczlsafysldjensioiucmqhwbbkcybs" // 替换为有效的 API Token
-	llm := service.NewSiliconFlowHandler(url, token,db)
+	llm := service.NewSiliconFlowHandler(url, token, db)
 
 	// 建立web与go之间的连接,初始化
 	websocketServer := websocket.NewWebSocketServer()
 	// 初始化server消息的结构体
-	message := websocket.NewMessageHandle(websocketServer, llm,dbNew)
+	message := websocket.NewMessageHandle(websocketServer, llm, dbNew)
 	// 获取message实例
 	websocketServer.GetMessageHandle(message)
 	// 启动路由
-	router := gin.Default()
-	router.GET("/ws", websocketServer.HandleConnection)
-	log.Println("服务器启动于: http://localhost:8080")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatalln("启动失败:", err)
-	}
+	router := api.NewGinWrapper(db)
+	router.SetupWebSocketAndRoutes(websocketServer)
+	// // 前端获取所有聊天记录的gin
+	// router.Gin.GET("/chatAll",router.Ss(debNew))
+
+	// 使用 CORS 中间件
+	router.Gin.Use(CORSMiddleware())
 
 }
