@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type ChatMessage struct {
 	Role           string                 `json:"role"`                     // "user" / "assistant" / "system"
@@ -99,3 +103,11 @@ type ChatRecord struct {
 }
 // ----------------------
 // 用户表
+// User 用户表结构体
+type User struct {
+    gorm.Model
+    Username string `gorm:"type:varchar(255);unique;default:'default_username'"`
+    Password string `gorm:"type:varchar(255);not null"`
+    Phone    string `gorm:"type:varchar(20);unique"`
+    Email    string `gorm:"type:varchar(255);unique;not null"`
+}

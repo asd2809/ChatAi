@@ -1,8 +1,8 @@
 package repository
+
 // 主要是用于初始化数据库
 import (
-	"time"
-
+	"smart-dialog-ai/internal/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -27,14 +27,6 @@ type ChatResponse struct {
 	} `json:"choices"`
 }
 
-// 存储到 MySQL 的结构
-type ChatRecord struct {
-	ID        uint      `gorm:"primaryKey"`
-	// UserID    string    `gorm:"index"`
-	Role      string    `gorm:"type:enum('user','assistant')"`
-	Content   string
-	CreatedAt time.Time
-}
 
 // 获取实例
 func NewDB(db *gorm.DB,userID string) *DB{
@@ -54,9 +46,11 @@ func InitDB() *gorm.DB{
 
 	// 自动建表
 
-	if err := db.AutoMigrate(&ChatRecord{}) ; err != nil{
+	if err := db.AutoMigrate(&model.ChatRecord{}) ; err != nil{
 		panic("mysql automigrate failed：" + err.Error())
 	}
-
+		if err := db.AutoMigrate(&model.User{}) ; err != nil{
+		panic("mysql automigrate failed：" + err.Error())
+	}
 	return db
 }
