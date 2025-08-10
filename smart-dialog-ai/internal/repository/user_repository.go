@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"fmt"
 	"smart-dialog-ai/internal/model"
 
@@ -83,24 +83,34 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
     }
     return nil
 }
-func  GetUser(db *gorm.DB, userID string)(*User,error){
-	logrus.Info("开始获取用户信息")
-	// 初始化user对象
-	var user User
-	// 根据id查找用户
-	result := db.First(&user,"id = ?",userID)
-	// 检查是否找到用户
-	if errors.Is(result.Error,gorm.ErrRecordNotFound){
-		return nil,errors.New("用户不存在")
-	}
-	if result.Error != nil{
-		// return nil, errors.Wrap(result.Error, "查询用户信息时发生错误")
-	}
-	logrus.Info("用户获取信息成功")
-	return &user,nil
+func  GetUser(db *gorm.DB){
+	
 }
-func  Register(db *gorm.DB, userID string){
-
+func  Register(db *gorm.DB,reg model.RegisterRequest) (model.User,error){
+	logrus.Info("开始新建用户信息")
+	// 检查前端传入数据的逻辑
+	var count int64
+	db.Model(&model.User{}).Where("username = ?",reg.Username).Count(&count)
+	if count > 0 {
+		return model.User{},errors.New("用户名已经存在")
+	}
+	// 检查邮箱是否已存在
+	db.Model(&User{}).Where("email = ?",reg.Email).Count(&count)
+	if count > 0{
+		return model.User{},errors.New("邮箱已经被使用")
+	}
+	// 创建用户
+	user := model.User{
+		Username: reg.Username,
+		Password: reg.Email,
+		Email: reg.Email,
+	}
+	// 向表中添加数据
+	if err := db.Create(&user).Error; err !=nil{
+		return model.User{},err
+	}
+	logrus.Info("添加用户信息成功")
+	return user,nil
 }
 func  UpdarerUser(db *gorm.DB, userID string){
 

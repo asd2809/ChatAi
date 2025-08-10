@@ -28,7 +28,7 @@ func main() {
 
 	// 加载配置
 
-	// 初始化 API 服务
+	// 初始化mysql服务
 	db := repository.InitDB()
 	// 获取db的实例
 	dbNew := repository.NewDB(db, "user1")

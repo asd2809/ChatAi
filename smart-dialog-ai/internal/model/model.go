@@ -7,17 +7,19 @@ import (
 )
 
 type ChatMessage struct {
-	Role           string                 `json:"role"`                     // "user" / "assistant" / "system"
-	Text           string                 `json:"text"`                     // 消息内容
-	Timestamp      string                 `json:"timestamp"`                // 时间戳（建议 ISO8601 格式或 HH:MM:SS）
-	MessageID      string                 `json:"message_id,omitempty"`     // 消息 ID（可选）
-	ConversationID string                 `json:"conversation_id,omitempty"`// 会话 ID（可选）
-	Extra          map[string]interface{} `json:"extra,omitempty"`          // 其他扩展信息（可选）
+	Role           string                 `json:"role"`                      // "user" / "assistant" / "system"
+	Text           string                 `json:"text"`                      // 消息内容
+	Timestamp      string                 `json:"timestamp"`                 // 时间戳（建议 ISO8601 格式或 HH:MM:SS）
+	MessageID      string                 `json:"message_id,omitempty"`      // 消息 ID（可选）
+	ConversationID string                 `json:"conversation_id,omitempty"` // 会话 ID（可选）
+	Extra          map[string]interface{} `json:"extra,omitempty"`           // 其他扩展信息（可选）
 }
-// type ChatMessage struct {
-// 	Role    string `json:"role"`
-// 	Content string `json:"content"`
-// }
+
+//	type ChatMessage struct {
+//		Role    string `json:"role"`
+//		Content string `json:"content"`
+//	}
+//
 // ------以下是llm需要的结构体---------
 type ToolFunction struct {
 	Name        string                 `json:"name"`
@@ -31,9 +33,9 @@ type Tool struct {
 }
 
 type RequestBody struct {
-	Model    string          `json:"model"`
+	Model    string    `json:"model"`
 	Messages []Message `json:"messages"`
-	Tools    []Tool          `json:"tools"`
+	Tools    []Tool    `json:"tools"`
 }
 
 type ToolCall struct {
@@ -73,8 +75,8 @@ type Function struct {
 	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
 }
-// ---------------
 
+// ---------------
 
 // ------------以下是聊天记录需的-------
 // 聊天记录的内容
@@ -93,21 +95,30 @@ type ChatResponse struct {
 		Message Message `json:"message"`
 	} `json:"choices"`
 }
+
 // 存储到 MySQL 的结构
 type ChatRecord struct {
-	ID        uint      `gorm:"primaryKey"`
-	UserID    string    `gorm:"index"`
-	Role      string    `gorm:"type:enum('user','assistant')"`
+	ID        uint   `gorm:"primaryKey"`
+	UserID    string `gorm:"index"`
+	Role      string `gorm:"type:enum('user','assistant')"`
 	Content   string
 	CreatedAt time.Time
 }
+
 // ----------------------
 // 用户表
 // User 用户表结构体
 type User struct {
-    gorm.Model
-    Username string `gorm:"type:varchar(255);unique;default:'default_username'"`
-    Password string `gorm:"type:varchar(255);not null"`
-    Phone    string `gorm:"type:varchar(20);unique"`
-    Email    string `gorm:"type:varchar(255);unique;not null"`
+	gorm.Model
+	Username string  `gorm:"type:varchar(255);unique;not null"` // 必填且唯一
+	Password string  `gorm:"type:varchar(255);not null"`        // 必填
+	Phone    *string `gorm:"type:varchar(20);unique" json:"phone"`// 可选，唯一
+	Email string `gorm:"type:varchar(255);unique;not null"` // 必填且唯一
+}
+
+// 注册请求参数结构体
+type RegisterRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required,min=6"`
+	Email    string `json:"email" binding:"required,email"`
 }
