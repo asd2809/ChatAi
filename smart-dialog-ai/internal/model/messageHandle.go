@@ -1,6 +1,5 @@
 package model
 
-
 type ChatMessage struct {
 	Role           string                 `json:"role"`                      // "user" / "assistant" / "system"
 	Text           string                 `json:"text"`                      // 消息内容
