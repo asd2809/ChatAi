@@ -49,6 +49,7 @@ func (g *GinWrapper) HandleGetUser(c *gin.Context){
 // 增加一条新的用户
 func (g *GinWrapper) HandleRegister(c *gin.Context){
 	var reg model.RegisterRequest
+
 	// 绑定前端传来的信息
 	if err := c.ShouldBindJSON(&reg);err !=nil{
 		Error(c,pkg.NewBizError(pkg.CodeParamInvalid))
