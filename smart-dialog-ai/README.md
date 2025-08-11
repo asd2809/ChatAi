@@ -23,6 +23,7 @@ smart-dialog-ai/
 │   └── utils/               # 工具函数和通用逻辑
 │       ├── http_client.go   # HTTP 客户端工具
 │       └── log.go           # 日志工具
+        --                   # 统一响应结构体、业务码定义和相应函数
 ├── pkg/                     # 第三方库或工具包
 │   └── rust_client/         # Rust 服务器调用的封装包
 ├── config/                  # 配置文件
