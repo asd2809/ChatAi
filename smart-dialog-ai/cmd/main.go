@@ -5,9 +5,12 @@ import (
 	"smart-dialog-ai/internal/api"
 	"smart-dialog-ai/internal/repository"
 	"smart-dialog-ai/internal/service"
+	"smart-dialog-ai/internal/utils"
 	"smart-dialog-ai/internal/websocket"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 // CORSMiddleware 是一个中间件，用于处理 CORS 相关的响应头
@@ -25,7 +28,10 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-
+	// 注册自定义校验器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		utils.RegisterCustomValidators(v)
+	}
 	// 加载配置
 
 	// 初始化mysql服务

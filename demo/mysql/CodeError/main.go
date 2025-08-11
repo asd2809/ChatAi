@@ -147,6 +147,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -156,6 +157,7 @@ type BizCode struct {
 	httpStatus int
 	message    string
 }
+
 // 业务码常量
 var (
 	CodeSuccess       = BizCode{0, http.StatusOK, "成功"}
