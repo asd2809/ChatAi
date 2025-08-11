@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"github.com/pkg/errors"
 	"fmt"
 	"smart-dialog-ai/internal/model"
+	"smart-dialog-ai/internal/pkg"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -83,34 +83,35 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
     }
     return nil
 }
-func  GetUser(db *gorm.DB){
+func  GetUser(db *gorm.DB,userID string){
 	
 }
-func  Register(db *gorm.DB,reg model.RegisterRequest) (model.User,error){
+// 需要传入db,需要传入web的结构体,
+func  Register(db *gorm.DB,reg model.RegisterRequest) error{
 	logrus.Info("开始新建用户信息")
 	// 检查前端传入数据的逻辑
 	var count int64
 	db.Model(&model.User{}).Where("username = ?",reg.Username).Count(&count)
 	if count > 0 {
-		return model.User{},errors.New("用户名已经存在")
+		return pkg.NewBizError(pkg.CodeUserExists)
 	}
 	// 检查邮箱是否已存在
 	db.Model(&User{}).Where("email = ?",reg.Email).Count(&count)
 	if count > 0{
-		return model.User{},errors.New("邮箱已经被使用")
+		return pkg.NewBizError(pkg.CodeEmailExists)
 	}
 	// 创建用户
 	user := model.User{
 		Username: reg.Username,
-		Password: reg.Email,
+		Password: reg.Password,
 		Email: reg.Email,
 	}
 	// 向表中添加数据
 	if err := db.Create(&user).Error; err !=nil{
-		return model.User{},err
+		return pkg.NewBizError(pkg.CodeDBError)
 	}
 	logrus.Info("添加用户信息成功")
-	return user,nil
+	return nil
 }
 func  UpdarerUser(db *gorm.DB, userID string){
 
