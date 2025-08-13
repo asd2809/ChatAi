@@ -1,6 +1,5 @@
 package main
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"demt/mysql/jiaoyan/utils"
 	 "github.com/gin-gonic/gin/binding"
